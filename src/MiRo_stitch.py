@@ -45,6 +45,7 @@ class DisplayStitched(object):
         self.fps_count = 0 
         self.cur_fps = 0 
         self.stop = False
+        self.finalStitch = np.zeros((1280,360),dtype="uint8")
 
         rospy.on_shutdown(self.shutdown_hook)
 
@@ -68,19 +69,19 @@ class DisplayStitched(object):
             unfisheye_img = cv2.undistort(image,self.mtx,self.dist, None)
 
             # Allows for testing with different image crop values
-            crop_width = 50
-            crop_height = 0
+            #crop_width = 50
+            #crop_height = 0
 
             # Left 
-            if index == 0:    
-                cropped_img = unfisheye_img[crop_height:360, crop_width:640]
+            #if index == 0:    
+            #    cropped_img = unfisheye_img[crop_height:360, crop_width:640]
             # Right
-            else : 
-                cropped_img = unfisheye_img[crop_height:360, 0:640-crop_width]
+            #else : 
+            #    cropped_img = unfisheye_img[crop_height:360, 0:640-crop_width]
 
             # Ignores empty images
-            if cropped_img.all != None:
-                self.miro_cams[index] = cropped_img
+            if unfisheye_img.all != None:
+                self.miro_cams[index] = unfisheye_img
     
         # Ignores corrupted frames
         except CvBridgeError as e:
@@ -88,6 +89,18 @@ class DisplayStitched(object):
 
     def stitchImages(self):   
 
+        # Combines Left and Right Cams into One Image
+        self.finalStitch[0:640,0:360] = self.miro_cams[0]
+        self.finalStitch[640:1280,0:360] = self.miro_cams[1]
+
+        #
+        color = (255,255,255)
+        self.finalStitch = cv2.putText(self.finalStitch, str(self.cur_fps), (50,50),cv2.FONT_HERSHEY_SIMPLEX,1,color,2, cv2.LINE_AA, False)
+
+        cv2.imshow("Result", self.finalStitch)
+        cv2.waitKey(10)
+        self.fps_count = self.fps_count + 1 
+        """
         status = 1 
         try:
             # Creates the stitcher, stitches and adds a black border for clarity
@@ -172,6 +185,7 @@ class DisplayStitched(object):
         else:
             # Shouldn't occur since there are only status codes 0 - 3
             print(f"Status Code : n/a")
+        """
 
     def shutdown_hook(self):
         print("Program Done!")
